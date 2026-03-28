@@ -12,10 +12,6 @@ env/
 # Jupyter
 .ipynb_checkpoints/
 
-# Data — raw is re-downloadable, processed is re-generable
-data/raw/
-data/processed/
-
 # Model checkpoints and saved weights (can be large)
 *.pt
 *.bin
