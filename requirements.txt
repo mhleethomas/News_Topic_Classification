@@ -1,0 +1,5 @@
+pandas>=2.0
+scikit-learn>=1.3
+datasets>=2.18        # HuggingFace datasets — free BBC News download
+transformers>=4.40    # Xinyan's BERT pipeline
+torch>=2.2            # Xinyan's BERT pipeline
