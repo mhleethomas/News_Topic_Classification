@@ -43,6 +43,7 @@ News_Topic_Classification/
 ## Quick Start
 
 ```bash
+# Requires Python 3.9+
 # Install dependencies — that's all, data is already in the repo
 pip install -r requirements.txt
 ```
