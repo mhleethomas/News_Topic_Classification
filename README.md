@@ -53,6 +53,27 @@ No download or preprocessing step needed.
 
 ---
 
+## Baseline pipeline 
+
+**Scope:** Classical topic **classification** only —  the baseline **consumes** the shared processed CSVs and runs end-to-end through **predictions**.
+
+| Deliverable | Where it is |
+|-------------|-------------|
+| Preprocessed text for n-grams | Column `text_lower` in `data/processed/*.csv` |
+| Unigram + bigram **TF-IDF** + **Logistic Regression** | [`src/baseline.py`](src/baseline.py) (`TfidfVectorizer` `ngram_range=(1, 2)`, `Pipeline` + `LogisticRegression`) |
+| **Baseline predictions** | After a full run: `outputs/baseline_test_predictions.csv` (true vs predicted `label` / `label_id`; `outputs/` is gitignored by default) |
+
+**Run** (from repo root, venv activated):
+
+```bash
+python src/baseline.py              # train on train.csv → metrics on val & test → save predictions
+python src/baseline.py --smoke      # train on debug.csv only → val metrics (quick sanity check)
+```
+
+**Expected ballpark** (BBC splits in repo; exact numbers depend slightly on sklearn version): validation accuracy ~0.95+, test accuracy ~0.97+.
+
+---
+
 ## Dataset
 
 **Source:** BBC News, downloaded for free via [Hugging Face](https://huggingface.co/datasets/SetFit/bbc-news) (`SetFit/bbc-news`).
