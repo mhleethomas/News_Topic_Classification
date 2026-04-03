@@ -84,7 +84,6 @@ def build_pipeline(
     clf = LogisticRegression(
         C=C,
         max_iter=2000,
-        multi_class="multinomial",
         solver="lbfgs",
         random_state=42,
     )

@@ -17,8 +17,8 @@ News_Topic_Classification/
 │       ├── test.csv              ← 180 rows  (15%)
 │       └── debug.csv             ←  50 rows  (10 per class, for smoke-testing)
 ├── src/
-│   ├── download_data.py          ← Thomas: download BBC News from HuggingFace (free)
-│   ├── data_preprocessing.py     ← Thomas: clean, split, save, defines LABEL_MAP
+│   ├── download_data.py          ← Ming-Hsiang: download BBC News from HuggingFace (free)
+│   ├── data_preprocessing.py     ← Ming-Hsiang: clean, split, save, defines LABEL_MAP
 │   ├── baseline.py               ← Ruoxuan: TF-IDF n-gram + Logistic Regression
 │   ├── bert_pipeline.py          ← Xinyan: BERT / DistilBERT fine-tuning
 │   └── evaluation.py             ← Meiling: metrics + error analysis
@@ -32,11 +32,11 @@ News_Topic_Classification/
 
 | Member  | Task |
 |---------|------|
-| Thomas  | Data download, preprocessing, shared data format |
+| Ming-Hsiang  | Data download, preprocessing, shared data format |
 | Ruoxuan | Baseline pipeline — TF-IDF n-gram + Logistic Regression |
 | Xinyan  | Neural pipeline — BERT / DistilBERT fine-tuning |
 | Meiling | Evaluation & error analysis |
-| Cindy   | Integration, comparison, results organization |
+| Tzu-Chieh   | Integration, comparison, results organization |
 
 ---
 
@@ -50,27 +50,6 @@ pip install -r requirements.txt
 
 All data files are committed and ready to use in `data/processed/`.
 No download or preprocessing step needed.
-
----
-
-## Baseline pipeline 
-
-**Scope:** Classical topic **classification** only —  the baseline **consumes** the shared processed CSVs and runs end-to-end through **predictions**.
-
-| Deliverable | Where it is |
-|-------------|-------------|
-| Preprocessed text for n-grams | Column `text_lower` in `data/processed/*.csv` |
-| Unigram + bigram **TF-IDF** + **Logistic Regression** | [`src/baseline.py`](src/baseline.py) (`TfidfVectorizer` `ngram_range=(1, 2)`, `Pipeline` + `LogisticRegression`) |
-| **Baseline predictions** | After a full run: `outputs/baseline_test_predictions.csv` (true vs predicted `label` / `label_id`; `outputs/` is gitignored by default) |
-
-**Run** (from repo root, venv activated):
-
-```bash
-python src/baseline.py              # train on train.csv → metrics on val & test → save predictions
-python src/baseline.py --smoke      # train on debug.csv only → val metrics (quick sanity check)
-```
-
-**Expected ballpark** (BBC splits in repo; exact numbers depend slightly on sklearn version): validation accuracy ~0.95+, test accuracy ~0.97+.
 
 ---
 
@@ -157,6 +136,80 @@ data = pd.read_csv("data/processed/train.csv")
 
 **Important:** `debug.csv` is sampled only from `train.csv`. The `val.csv` and `test.csv`
 rows are never in `debug.csv`, so your evaluation stays clean.
+
+---
+## Baseline pipeline 
+
+**Scope:** Classical topic **classification** only —  the baseline **consumes** the shared processed CSVs and runs end-to-end through **predictions**.
+
+| Deliverable | Where it is |
+|-------------|-------------|
+| Preprocessed text for n-grams | Column `text_lower` in `data/processed/*.csv` |
+| Unigram + bigram **TF-IDF** + **Logistic Regression** | [`src/baseline.py`](src/baseline.py) (`TfidfVectorizer` `ngram_range=(1, 2)`, `Pipeline` + `LogisticRegression`) |
+| **Baseline predictions** | After a full run: `outputs/baseline_test_predictions.csv` (true vs predicted `label` / `label_id`; `outputs/` is gitignored by default) |
+
+**Run** (from repo root, venv activated):
+
+```bash
+python src/baseline.py              # train on train.csv → metrics on val & test → save predictions
+python src/baseline.py --smoke      # train on debug.csv only → val metrics (quick sanity check)
+```
+
+**Expected ballpark** (BBC splits in repo; exact numbers depend slightly on sklearn version): validation accuracy ~0.95+, test accuracy ~0.97+.
+
+---
+
+## BERT pipeline
+
+**Scope:** Fine-tune a Hugging Face **BERT** model for the same 5-way topic classification. The pipeline reads the shared processed CSVs and tokenizes the **`text`** column (original casing).
+
+| Deliverable | Location |
+|-------------|----------|
+| Training / inference | [`src/bert_pipeline.py`](src/bert_pipeline.py) (`BertForSequenceClassification`, `BertTokenizerFast`) |
+| **Test predictions** | `outputs/bert/test_predictions.csv` |
+| Other outputs | `outputs/bert/val_predictions.csv`, `training_history.csv`, `metrics_summary.csv` |
+
+The `outputs/` directory is gitignored by default; run the script locally to generate files.
+
+**Run** (from repo root, venv activated; requires PyTorch + GPU/MPS recommended):
+
+```bash
+python src/bert_pipeline.py
+python src/bert_pipeline.py --use-debug --epochs 1 --max-length 128   # smoke: train on debug.csv only
+```
+
+**Prediction CSV columns** (test/val): includes `label`, `label_id`, `text`, `pred_label_id`, `pred_label`, `pred_confidence`, and `row_id`. Downstream evaluation only requires `label_id` and `pred_label_id`.
+
+---
+
+## Evaluation
+
+**Scope:** Load saved **test** predictions from the baseline and BERT runs, recompute metrics, plot confusion matrices, and export error-analysis tables. Implemented in [`src/evaluation.py`](src/evaluation.py).
+
+**Prerequisites:** Generate predictions first:
+
+1. `python src/baseline.py` → `outputs/baseline_test_predictions.csv`
+2. `python src/bert_pipeline.py` → `outputs/bert/test_predictions.csv`
+
+**Run:**
+
+```bash
+python src/evaluation.py --model all       # baseline + BERT (default)
+python src/evaluation.py --model baseline
+python src/evaluation.py --model bert
+```
+
+**Outputs** (under `outputs/`; `outputs/` is gitignored by default):
+
+| File | Description |
+|------|-------------|
+| `metrics_comparison.csv` | Side-by-side accuracy and F1 (macro / weighted) when both models are evaluated |
+| `confusion_matrix_baseline.png` | Confusion matrix for the baseline |
+| `confusion_matrix_bert.png` | Confusion matrix for BERT |
+| `errors_<model>.csv` | Misclassified rows |
+| `confused_pairs_<model>.csv` | Counts of (true label, predicted label) for errors |
+
+The script prints classification reports to the terminal. If a prediction file is missing, that model is skipped with a message.
 
 ---
 

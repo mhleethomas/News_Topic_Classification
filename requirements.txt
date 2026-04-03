@@ -4,3 +4,5 @@ scikit-learn>=1.3
 datasets>=2.18        # HuggingFace datasets — free BBC News download
 transformers>=4.40    # Xinyan's BERT pipeline
 torch>=2.2            # Xinyan's BERT pipeline
+matplotlib>=3.8       # evaluation.py plots / confusion matrices
+seaborn>=0.13         # evaluation.py heatmaps / styling
