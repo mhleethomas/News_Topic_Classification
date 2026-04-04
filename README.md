@@ -4,6 +4,31 @@ Comparing n-gram + Logistic Regression vs. BERT on BBC News and AG News datasets
 
 ---
 
+## ⚠️ Branch `feature/agnews-dataset` — Pending Changes
+
+> **Delete this section after merging to main.**
+
+### What changed
+- Dataset switched from BBC News → **AG News** (127,600 rows, 4 classes)
+- Processed data reorganised: `data/processed/bbc/` and `data/processed/agnews/`
+- `LABEL_MAP` updated to 4 classes (Business / Sci/Tech / Sports / World)
+- `baseline.py` and `bert_pipeline.py` default paths updated to `data/processed/bbc/`
+
+### Action required before merge
+| Who | What |
+|-----|------|
+| Ruoxuan | Update path in `baseline.py` to `data/processed/agnews/`, run and confirm results |
+| Xinyan | Update paths + set `num_labels=4` + use `--max-length 128`, run and confirm |
+| Meiling | No changes needed — verify evaluation runs after others finish |
+| Tzu-Chieh | Confirm outputs look correct, approve PR |
+
+### Merge to main when
+- [ ] Baseline runs on AG News without errors
+- [ ] BERT runs at least 1 epoch without errors
+- [ ] At least one teammate approves the PR on GitHub
+
+---
+
 ## Project Structure
 
 ```
