@@ -1,6 +1,6 @@
 # News Topic Classification — Group 2
 
-Comparing n-gram + Logistic Regression vs. BERT/DistilBERT on the BBC News dataset.
+Comparing n-gram + Logistic Regression vs. BERT on BBC News and AG News datasets.
 
 ---
 
@@ -10,18 +10,26 @@ Comparing n-gram + Logistic Regression vs. BERT/DistilBERT on the BBC News datas
 News_Topic_Classification/
 ├── data/
 │   ├── raw/
-│   │   └── bbc-text.csv          ← committed to repo, ready to use
-│   └── processed/                ← committed to repo, ready to use
-│       ├── train.csv             ← 835 rows  (70%)
-│       ├── val.csv               ← 179 rows  (15%)
-│       ├── test.csv              ← 180 rows  (15%)
-│       └── debug.csv             ←  50 rows  (10 per class, for smoke-testing)
+│   │   ├── bbc-text.csv            ← BBC News raw (committed)
+│   │   ├── ag_news_train.csv       ← AG News raw train 120,000 rows (committed)
+│   │   └── ag_news_test.csv        ← AG News raw test  7,600 rows  (committed)
+│   └── processed/
+│       ├── bbc/                    ← BBC News processed splits (committed)
+│       │   ├── train.csv           ←   835 rows (70%)
+│       │   ├── val.csv             ←   179 rows (15%)
+│       │   ├── test.csv            ←   180 rows (15%)
+│       │   └── debug.csv           ←    50 rows (10 per class)
+│       └── agnews/                 ← AG News processed splits (committed)
+│           ├── train.csv           ← 102,000 rows (85% of official train)
+│           ├── val.csv             ←  18,000 rows (15% of official train)
+│           ├── test.csv            ←   7,600 rows (official test, unchanged)
+│           └── debug.csv           ←      40 rows (10 per class)
 ├── src/
-│   ├── download_data.py          ← Ming-Hsiang: download BBC News from HuggingFace (free)
-│   ├── data_preprocessing.py     ← Ming-Hsiang: clean, split, save, defines LABEL_MAP
-│   ├── baseline.py               ← Ruoxuan: TF-IDF n-gram + Logistic Regression
-│   ├── bert_pipeline.py          ← Xinyan: BERT / DistilBERT fine-tuning
-│   └── evaluation.py             ← Meiling: metrics + error analysis
+│   ├── download_data.py            ← Ming-Hsiang: download AG News from HuggingFace
+│   ├── data_preprocessing.py       ← Ming-Hsiang: clean, split, save, defines LABEL_MAP
+│   ├── baseline.py                 ← Ruoxuan: TF-IDF n-gram + Logistic Regression
+│   ├── bert_pipeline.py            ← Xinyan: BERT fine-tuning
+│   └── evaluation.py               ← Meiling: metrics + error analysis
 ├── requirements.txt
 └── README.md
 ```
@@ -30,13 +38,13 @@ News_Topic_Classification/
 
 ## Team Responsibilities
 
-| Member  | Task |
-|---------|------|
-| Ming-Hsiang  | Data download, preprocessing, shared data format |
+| Member | Task |
+|--------|------|
+| Ming-Hsiang | Data download, preprocessing, shared data format |
 | Ruoxuan | Baseline pipeline — TF-IDF n-gram + Logistic Regression |
-| Xinyan  | Neural pipeline — BERT / DistilBERT fine-tuning |
+| Xinyan | Neural pipeline — BERT fine-tuning |
 | Meiling | Evaluation & error analysis |
-| Tzu-Chieh   | Integration, comparison, results organization |
+| Tzu-Chieh | Integration, comparison, results organization |
 
 ---
 
@@ -44,12 +52,10 @@ News_Topic_Classification/
 
 ```bash
 # Requires Python 3.9+
-# Install dependencies — that's all, data is already in the repo
 pip install -r requirements.txt
 ```
 
-All data files are committed and ready to use in `data/processed/`.
-No download or preprocessing step needed.
+All data files are committed and ready to use — no download or preprocessing needed.
 
 ---
 
@@ -59,19 +65,18 @@ No download or preprocessing step needed.
 
 **Source:** [`SetFit/bbc-news`](https://huggingface.co/datasets/SetFit/bbc-news) via Hugging Face.
 
-**Size after cleaning:** 1,194 articles across 5 categories.
+**Size after cleaning:** 1,194 articles across 5 categories, ~395 words avg.
 
-| Category      | Total | Train | Val | Test |
-|---------------|-------|-------|-----|------|
-| business      |  196  |  137  |  29 |  30  |
-| entertainment |  282  |  197  |  43 |  42  |
-| politics      |  274  |  192  |  41 |  41  |
-| sport         |  206  |  144  |  31 |  31  |
-| tech          |  236  |  165  |  35 |  36  |
-| **Total**     | **1,194** | **835** | **179** | **180** |
+| Category | Total | Train | Val | Test |
+|----------|-------|-------|-----|------|
+| business | 196 | 137 | 29 | 30 |
+| entertainment | 282 | 197 | 43 | 42 |
+| politics | 274 | 192 | 41 | 41 |
+| sport | 206 | 144 | 31 | 31 |
+| tech | 236 | 165 | 35 | 36 |
+| **Total** | **1,194** | **835** | **179** | **180** |
 
 - Split ratio: **70 / 15 / 15** (train / val / test), stratified, `random_state=42`
-- Average article length: ~395 words
 
 ---
 
@@ -79,25 +84,25 @@ No download or preprocessing step needed.
 
 **Source:** [`fancyzhx/ag_news`](https://huggingface.co/datasets/fancyzhx/ag_news) via Hugging Face.
 
-**Size:** 127,600 articles across 4 categories (short-form: headline + description, ~37 words avg).
+**Size:** 127,600 articles across 4 categories, ~38 words avg (headline + description).
 
 | Category | Train | Val | Test |
 |----------|-------|-----|------|
-| Business | ~25,500 | ~4,500 | 1,900 |
-| Sci/Tech | ~25,500 | ~4,500 | 1,900 |
-| Sports   | ~25,500 | ~4,500 | 1,900 |
-| World    | ~25,500 | ~4,500 | 1,900 |
-| **Total**| **~102,000** | **~18,000** | **7,600** |
+| Business | 25,500 | 4,500 | 1,900 |
+| Sci/Tech | 25,500 | 4,500 | 1,900 |
+| Sports | 25,500 | 4,500 | 1,900 |
+| World | 25,500 | 4,500 | 1,900 |
+| **Total** | **102,000** | **18,000** | **7,600** |
 
 **Split logic:**
 
-AG News provides an official `train` (120,000) and `test` (7,600) split. We do **not** re-split the test set — using the official split keeps results comparable with other papers.
+AG News provides an official `train` (120,000) and `test` (7,600). The official test is kept as-is to allow comparison with published results. A validation set is carved from the train split only.
 
 ```
 AG News raw train (120,000)
     └── split 85 / 15  (random_state=42, stratified)
-            ├── train.csv  (~102,000 rows)
-            └── val.csv    (~18,000 rows)
+            ├── train.csv  (102,000 rows)
+            └── val.csv    ( 18,000 rows)
 
 AG News raw test (7,600)
     └── used as-is → test.csv  (7,600 rows)
@@ -105,22 +110,22 @@ AG News raw test (7,600)
 train.csv — 10 rows per class → debug.csv (40 rows)
 ```
 
-Val and test are intentionally different sizes — val is for monitoring training, test is for final reporting. Size parity between them is not required.
+Val and test are intentionally different sizes — val monitors training, test is for final reporting.
 
 ---
 
 ## Shared Data Format
 
-All four CSV files (`train`, `val`, `test`, `debug`) have the **same four columns:**
+All CSV files (`train`, `val`, `test`, `debug`) share the same four columns:
 
 | Column | Type | Description | Used by |
 |--------|------|-------------|---------|
-| `label` | string | Category name, lowercase | everyone |
-| `label_id` | int | Integer encoding of the label (see map below) | Ruoxuan, Xinyan |
-| `text` | string | Cleaned article text, **original casing** | Xinyan (BERT) |
-| `text_lower` | string | Same text, **lowercased** | Ruoxuan (n-gram) |
+| `label` | string | Category name | everyone |
+| `label_id` | int | Integer encoding (see map below) | Ruoxuan, Xinyan |
+| `text` | string | Cleaned text, original casing | Xinyan (BERT) |
+| `text_lower` | string | Same text, lowercased | Ruoxuan (n-gram) |
 
-**Label map — BBC News** (stable, alphabetical order):
+**Label map — BBC News:**
 
 | label | label_id |
 |-------|----------|
@@ -130,139 +135,105 @@ All four CSV files (`train`, `val`, `test`, `debug`) have the **same four column
 | sport | 3 |
 | tech | 4 |
 
-**Label map — AG News** (stable, alphabetical order):
+**Label map — AG News:**
 
 | label | label_id |
 |-------|----------|
 | Business | 0 |
 | Sci/Tech | 1 |
-| Sports   | 2 |
-| World    | 3 |
+| Sports | 2 |
+| World | 3 |
 
-To import the label map in your script:
+To import in your script:
 ```python
 from src.data_preprocessing import LABEL_MAP, ID_TO_LABEL
-# LABEL_MAP:   {"Business": 0, "Sci/Tech": 1, ...}   ← AG News (current branch)
-# ID_TO_LABEL: {0: "Business", 1: "Sci/Tech", ...}
 ```
 
 ---
 
 ## debug.csv — What It Is and How to Use It
 
-`debug.csv` is a **tiny 50-row subset** (exactly 10 articles per class) sampled from the training set.
+A tiny subset (10 articles per class) sampled from `train.csv` only — val and test rows are never included.
 
-**Purpose:** Use it to verify your pipeline works before running on the full dataset.
-- Ruoxuan: test that your TF-IDF vectorizer and LR classifier can fit and predict
-- Xinyan: test that your tokenizer and model forward pass run without errors
-- Meiling: test that your metrics and confusion matrix code produces output
-- Saves time — full training can take minutes; debug runs in seconds
+**AG News debug:** 40 rows (4 classes × 10)
+**BBC News debug:** 50 rows (5 classes × 10)
 
-**How to load it:**
+Use it to verify your pipeline runs before committing to a full training run.
+
 ```python
 import pandas as pd
 
-debug = pd.read_csv("data/processed/debug.csv")
-train = pd.read_csv("data/processed/train.csv")
-val   = pd.read_csv("data/processed/val.csv")
-test  = pd.read_csv("data/processed/test.csv")
+# AG News
+train = pd.read_csv("data/processed/agnews/train.csv")
+val   = pd.read_csv("data/processed/agnews/val.csv")
+test  = pd.read_csv("data/processed/agnews/test.csv")
+debug = pd.read_csv("data/processed/agnews/debug.csv")
+
+# BBC News
+train = pd.read_csv("data/processed/bbc/train.csv")
 ```
-
-**Example — switch between debug and full data in one line:**
-```python
-# During development: use debug for fast iteration
-data = pd.read_csv("data/processed/debug.csv")
-
-# When ready: swap to full training set
-data = pd.read_csv("data/processed/train.csv")
-```
-
-**Important:** `debug.csv` is sampled only from `train.csv`. The `val.csv` and `test.csv`
-rows are never in `debug.csv`, so your evaluation stays clean.
 
 ---
-## Baseline pipeline 
 
-**Scope:** Classical topic **classification** only —  the baseline **consumes** the shared processed CSVs and runs end-to-end through **predictions**.
+## Baseline Pipeline
 
-| Deliverable | Where it is |
-|-------------|-------------|
-| Preprocessed text for n-grams | Column `text_lower` in `data/processed/*.csv` |
-| Unigram + bigram **TF-IDF** + **Logistic Regression** | [`src/baseline.py`](src/baseline.py) (`TfidfVectorizer` `ngram_range=(1, 2)`, `Pipeline` + `LogisticRegression`) |
-| **Baseline predictions** | After a full run: `outputs/baseline_test_predictions.csv` (true vs predicted `label` / `label_id`; `outputs/` is gitignored by default) |
-
-**Run** (from repo root, venv activated):
+TF-IDF (unigram + bigram) + Logistic Regression. Reads `text_lower` and `label_id` from the processed CSVs.
 
 ```bash
-python src/baseline.py              # train on train.csv → metrics on val & test → save predictions
-python src/baseline.py --smoke      # train on debug.csv only → val metrics (quick sanity check)
+python src/baseline.py              # full run → val + test metrics + predictions
+python src/baseline.py --smoke      # train on debug.csv only (quick check)
 ```
 
-**Expected ballpark** (BBC splits in repo; exact numbers depend slightly on sklearn version): validation accuracy ~0.95+, test accuracy ~0.97+.
+Outputs: `outputs/baseline_test_predictions.csv`
+
+Default paths point to `data/processed/bbc/`. To run on AG News:
+```bash
+# baseline.py reads from processed_dir — update the path in the script or pass splits manually
+```
 
 ---
 
-## BERT pipeline
+## BERT Pipeline
 
-**Scope:** Fine-tune a Hugging Face **BERT** model for the same 5-way topic classification. The pipeline reads the shared processed CSVs and tokenizes the **`text`** column (original casing).
-
-| Deliverable | Location |
-|-------------|----------|
-| Training / inference | [`src/bert_pipeline.py`](src/bert_pipeline.py) (`BertForSequenceClassification`, `BertTokenizerFast`) |
-| **Test predictions** | `outputs/bert/test_predictions.csv` |
-| Other outputs | `outputs/bert/val_predictions.csv`, `training_history.csv`, `metrics_summary.csv` |
-
-The `outputs/` directory is gitignored by default; run the script locally to generate files.
-
-**Run** (from repo root, venv activated; requires PyTorch + GPU/MPS recommended):
+Fine-tunes `bert-base-uncased` for 4-class (AG News) or 5-class (BBC) classification. Reads `text` (original casing) and `label_id`.
 
 ```bash
 python src/bert_pipeline.py
-python src/bert_pipeline.py --use-debug --epochs 1 --max-length 128   # smoke: train on debug.csv only
+python src/bert_pipeline.py --use-debug --epochs 1 --max-length 128   # smoke test
 ```
 
-**Prediction CSV columns** (test/val): includes `label`, `label_id`, `text`, `pred_label_id`, `pred_label`, `pred_confidence`, and `row_id`. Downstream evaluation only requires `label_id` and `pred_label_id`.
+**Note for Xinyan:** AG News text is short (~38 words). Recommended `--max-length 128` (vs 256 for BBC). Also update `--train-path`, `--val-path`, `--test-path` to point to `data/processed/agnews/`.
+
+Outputs: `outputs/bert/test_predictions.csv`, `val_predictions.csv`, `training_history.csv`, `metrics_summary.csv`
 
 ---
 
 ## Evaluation
 
-**Scope:** Load saved **test** predictions from the baseline and BERT runs, recompute metrics, plot confusion matrices, and export error-analysis tables. Implemented in [`src/evaluation.py`](src/evaluation.py).
-
-**Prerequisites:** Generate predictions first:
-
-1. `python src/baseline.py` → `outputs/baseline_test_predictions.csv`
-2. `python src/bert_pipeline.py` → `outputs/bert/test_predictions.csv`
-
-**Run:**
+Reads prediction CSVs from `outputs/`, computes metrics, plots confusion matrices, exports error analysis.
 
 ```bash
-python src/evaluation.py --model all       # baseline + BERT (default)
+python src/evaluation.py --model all       # baseline + BERT
 python src/evaluation.py --model baseline
 python src/evaluation.py --model bert
 ```
 
-**Outputs** (under `outputs/`; `outputs/` is gitignored by default):
-
-| File | Description |
-|------|-------------|
-| `metrics_comparison.csv` | Side-by-side accuracy and F1 (macro / weighted) when both models are evaluated |
-| `confusion_matrix_baseline.png` | Confusion matrix for the baseline |
-| `confusion_matrix_bert.png` | Confusion matrix for BERT |
+| Output file | Description |
+|-------------|-------------|
+| `metrics_comparison.csv` | Side-by-side accuracy and F1 |
+| `confusion_matrix_<model>.png` | Confusion matrix |
 | `errors_<model>.csv` | Misclassified rows |
-| `confused_pairs_<model>.csv` | Counts of (true label, predicted label) for errors |
-
-The script prints classification reports to the terminal. If a prediction file is missing, that model is skipped with a message.
+| `confused_pairs_<model>.csv` | Most confused category pairs |
 
 ---
 
 ## Regenerating the Data
 
-If you need to re-run preprocessing from scratch:
+Only needed if you want to re-run from scratch. All outputs are already committed.
 
 ```bash
-python src/download_data.py       # re-downloads raw data
-python src/data_preprocessing.py  # re-generates all processed CSVs
+python src/download_data.py        # re-downloads AG News raw CSVs
+python src/data_preprocessing.py   # re-generates data/processed/agnews/
 ```
 
-The output is deterministic (`random_state=42`) — you will get the exact same splits every time.
+Output is deterministic (`random_state=42`) — same splits every time.
