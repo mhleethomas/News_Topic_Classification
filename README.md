@@ -53,9 +53,11 @@ No download or preprocessing step needed.
 
 ---
 
-## Dataset
+## Datasets
 
-**Source:** BBC News, downloaded for free via [Hugging Face](https://huggingface.co/datasets/SetFit/bbc-news) (`SetFit/bbc-news`).
+### BBC News (`data/processed/bbc/`)
+
+**Source:** [`SetFit/bbc-news`](https://huggingface.co/datasets/SetFit/bbc-news) via Hugging Face.
 
 **Size after cleaning:** 1,194 articles across 5 categories.
 
@@ -68,10 +70,42 @@ No download or preprocessing step needed.
 | tech          |  236  |  165  |  35 |  36  |
 | **Total**     | **1,194** | **835** | **179** | **180** |
 
-- Split ratio: **70 / 15 / 15** (train / val / test)
-- Split is **stratified** — each split has the same class proportions
-- `random_state=42` — reproducible, same split every time
+- Split ratio: **70 / 15 / 15** (train / val / test), stratified, `random_state=42`
 - Average article length: ~395 words
+
+---
+
+### AG News (`data/processed/agnews/`)
+
+**Source:** [`fancyzhx/ag_news`](https://huggingface.co/datasets/fancyzhx/ag_news) via Hugging Face.
+
+**Size:** 127,600 articles across 4 categories (short-form: headline + description, ~37 words avg).
+
+| Category | Train | Val | Test |
+|----------|-------|-----|------|
+| Business | ~25,500 | ~4,500 | 1,900 |
+| Sci/Tech | ~25,500 | ~4,500 | 1,900 |
+| Sports   | ~25,500 | ~4,500 | 1,900 |
+| World    | ~25,500 | ~4,500 | 1,900 |
+| **Total**| **~102,000** | **~18,000** | **7,600** |
+
+**Split logic:**
+
+AG News provides an official `train` (120,000) and `test` (7,600) split. We do **not** re-split the test set — using the official split keeps results comparable with other papers.
+
+```
+AG News raw train (120,000)
+    └── split 85 / 15  (random_state=42, stratified)
+            ├── train.csv  (~102,000 rows)
+            └── val.csv    (~18,000 rows)
+
+AG News raw test (7,600)
+    └── used as-is → test.csv  (7,600 rows)
+
+train.csv — 10 rows per class → debug.csv (40 rows)
+```
+
+Val and test are intentionally different sizes — val is for monitoring training, test is for final reporting. Size parity between them is not required.
 
 ---
 
@@ -86,7 +120,7 @@ All four CSV files (`train`, `val`, `test`, `debug`) have the **same four column
 | `text` | string | Cleaned article text, **original casing** | Xinyan (BERT) |
 | `text_lower` | string | Same text, **lowercased** | Ruoxuan (n-gram) |
 
-**Label map** (stable, alphabetical order):
+**Label map — BBC News** (stable, alphabetical order):
 
 | label | label_id |
 |-------|----------|
@@ -96,11 +130,20 @@ All four CSV files (`train`, `val`, `test`, `debug`) have the **same four column
 | sport | 3 |
 | tech | 4 |
 
+**Label map — AG News** (stable, alphabetical order):
+
+| label | label_id |
+|-------|----------|
+| Business | 0 |
+| Sci/Tech | 1 |
+| Sports   | 2 |
+| World    | 3 |
+
 To import the label map in your script:
 ```python
 from src.data_preprocessing import LABEL_MAP, ID_TO_LABEL
-# LABEL_MAP:   {"business": 0, "entertainment": 1, ...}
-# ID_TO_LABEL: {0: "business", 1: "entertainment", ...}
+# LABEL_MAP:   {"Business": 0, "Sci/Tech": 1, ...}   ← AG News (current branch)
+# ID_TO_LABEL: {0: "Business", 1: "Sci/Tech", ...}
 ```
 
 ---
