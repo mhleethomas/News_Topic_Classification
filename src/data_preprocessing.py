@@ -1,16 +1,19 @@
 """
 data_preprocessing.py
-Thomas's task: Data preprocessing and dataset preparation for BBC News.
+Thomas's task: Data preprocessing and dataset preparation for AG News.
+
+AG News ships with a pre-defined train (120,000) and test (7,600) split.
+We carve a validation set out of the train split (stratified).
 
 Outputs (data/processed/):
-    train.csv   — 70 % of data, stratified
-    val.csv     — 15 % of data, stratified
-    test.csv    — 15 % of data, stratified
-    debug.csv   — 10 samples per class (50 total) for fast smoke-testing
+    train.csv   — ~85 % of AG News train, stratified (~102,000 rows)
+    val.csv     — ~15 % of AG News train, stratified (~18,000 rows)
+    test.csv    — full AG News test split (7,600 rows)
+    debug.csv   — 10 samples per class (40 total) for fast smoke-testing
 
 Shared column schema (all four files):
-    label       str   category name  e.g. "sport"
-    label_id    int   0-4, stable mapping defined in LABEL_MAP below
+    label       str   category name  e.g. "Sports"
+    label_id    int   0-3, stable mapping defined in LABEL_MAP below
     text        str   cleaned text, original casing  → for BERT (Xinyan)
     text_lower  str   lowercased text                → for n-gram/LR (Ruoxuan)
 """
@@ -26,11 +29,10 @@ from sklearn.model_selection import train_test_split
 # ──────────────────────────────────────────────
 
 LABEL_MAP: dict[str, int] = {
-    "business":      0,
-    "entertainment": 1,
-    "politics":      2,
-    "sport":         3,
-    "tech":          4,
+    "Business": 0,
+    "Sci/Tech": 1,
+    "Sports":   2,
+    "World":    3,
 }
 # Reverse lookup: id → name
 ID_TO_LABEL: dict[int, str] = {v: k for k, v in LABEL_MAP.items()}
@@ -40,25 +42,10 @@ ID_TO_LABEL: dict[int, str] = {v: k for k, v in LABEL_MAP.items()}
 # 1. LOAD
 # ──────────────────────────────────────────────
 
-def load_bbc_csv(csv_path: str) -> pd.DataFrame:
-    """Load BBC News from a CSV file.
-
-    Accepts:
-      - columns [category, text]  (common Kaggle/HuggingFace export)
-      - columns [label, text]
-    """
+def load_ag_news_csv(csv_path: str) -> pd.DataFrame:
+    """Load an AG News CSV file (columns: text, label)."""
     df = pd.read_csv(csv_path)
-    df.columns = df.columns.str.strip().str.lower()
-
-    rename_map = {}
-    if "category" in df.columns:
-        rename_map["category"] = "label"
-    for alt in ["article", "content", "body"]:
-        if alt in df.columns and "text" not in df.columns:
-            rename_map[alt] = "text"
-            break
-
-    df = df.rename(columns=rename_map)
+    df.columns = df.columns.str.strip()
 
     missing = {"label", "text"} - set(df.columns)
     if missing:
@@ -67,52 +54,25 @@ def load_bbc_csv(csv_path: str) -> pd.DataFrame:
     return df[["label", "text"]].copy()
 
 
-def load_bbc_folder(folder_path: str) -> pd.DataFrame:
-    """Load BBC News from the raw folder layout.
+def load_dataset(raw_dir: str) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """Load AG News train and test splits from raw CSVs.
 
-    data/raw/bbc/<category>/<article_id>.txt
+    Returns:
+        (train_df, test_df) — both with columns [label, text]
     """
-    records = []
-    for category in os.listdir(folder_path):
-        cat_dir = os.path.join(folder_path, category)
-        if not os.path.isdir(cat_dir):
-            continue
-        for fname in os.listdir(cat_dir):
-            if not fname.endswith(".txt"):
-                continue
-            fpath = os.path.join(cat_dir, fname)
-            with open(fpath, "r", encoding="utf-8", errors="replace") as f:
-                text = f.read()
-            records.append({"label": category, "text": text})
+    train_path = os.path.join(raw_dir, "ag_news_train.csv")
+    test_path = os.path.join(raw_dir, "ag_news_test.csv")
 
-    if not records:
+    missing = [p for p in (train_path, test_path) if not os.path.isfile(p)]
+    if missing:
         raise FileNotFoundError(
-            f"No .txt files found under '{folder_path}'."
-        )
-    return pd.DataFrame(records)
-
-
-def load_dataset(raw_dir: str) -> pd.DataFrame:
-    """Auto-detect and load the BBC News dataset.
-
-    Priority:
-      1. data/raw/bbc-text.csv   (produced by download_data.py)
-      2. data/raw/bbc/           (raw folder layout)
-    """
-    csv_path = os.path.join(raw_dir, "bbc-text.csv")
-    bbc_folder = os.path.join(raw_dir, "bbc")
-
-    if os.path.isfile(csv_path):
-        print(f"[load] Found CSV: {csv_path}")
-        return load_bbc_csv(csv_path)
-    elif os.path.isdir(bbc_folder):
-        print(f"[load] Found folder: {bbc_folder}")
-        return load_bbc_folder(bbc_folder)
-    else:
-        raise FileNotFoundError(
-            f"No BBC News data found in '{raw_dir}'.\n"
+            f"AG News raw files not found: {missing}\n"
             "Run:  python src/download_data.py"
         )
+
+    print(f"[load] Found: {train_path}")
+    print(f"[load] Found: {test_path}")
+    return load_ag_news_csv(train_path), load_ag_news_csv(test_path)
 
 
 # ──────────────────────────────────────────────
@@ -142,7 +102,7 @@ def preprocess(df: pd.DataFrame) -> pd.DataFrame:
     df["text"] = df["text"].apply(clean_text)
     df = df[df["text"].str.len() > 0]
 
-    df["label"] = df["label"].str.strip().str.lower()
+    df["label"] = df["label"].str.strip()
 
     # Drop any rows whose label isn't in our expected set
     unknown = ~df["label"].isin(LABEL_MAP)
@@ -164,31 +124,23 @@ def preprocess(df: pd.DataFrame) -> pd.DataFrame:
 # 3. SPLIT
 # ──────────────────────────────────────────────
 
-def split_dataset(
-    df: pd.DataFrame,
-    test_size: float = 0.15,
+def split_train_val(
+    train_df: pd.DataFrame,
     val_size: float = 0.15,
     random_state: int = 42,
-) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
-    """Stratified 70 / 15 / 15 train / val / test split."""
-    train_val, test = train_test_split(
-        df,
-        test_size=test_size,
-        random_state=random_state,
-        stratify=df["label"],
-    )
-    relative_val = val_size / (1 - test_size)
+) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """Carve a stratified validation set out of the AG News train split.
+
+    AG News provides its own test split, so we only split train → train/val.
+    Default: 85 / 15 split of the 120,000-row train set.
+    """
     train, val = train_test_split(
-        train_val,
-        test_size=relative_val,
+        train_df,
+        test_size=val_size,
         random_state=random_state,
-        stratify=train_val["label"],
+        stratify=train_df["label"],
     )
-    return (
-        train.reset_index(drop=True),
-        val.reset_index(drop=True),
-        test.reset_index(drop=True),
-    )
+    return train.reset_index(drop=True), val.reset_index(drop=True)
 
 
 # ──────────────────────────────────────────────
@@ -202,7 +154,7 @@ def make_debug_subset(
 ) -> pd.DataFrame:
     """Sample n_per_class examples per label from train for fast smoke-testing.
 
-    Default: 10 × 5 classes = 50 rows.
+    Default: 10 × 4 classes = 40 rows.
     Sampled only from train so test/val stay untouched.
     """
     groups = [
@@ -237,28 +189,31 @@ def save_splits(
 # ──────────────────────────────────────────────
 
 def print_summary(
-    df: pd.DataFrame,
+    train_raw: pd.DataFrame,
+    test_raw: pd.DataFrame,
     train: pd.DataFrame,
     val: pd.DataFrame,
     test: pd.DataFrame,
 ) -> None:
-    print("\n=== Dataset Summary ===")
-    print(f"Total : {len(df)}  |  Train : {len(train)}  |  Val : {len(val)}  |  Test : {len(test)}")
+    total = len(train_raw) + len(test_raw)
+    print("\n=== Dataset Summary (AG News) ===")
+    print(f"Raw   : train={len(train_raw)}  test={len(test_raw)}  total={total}")
+    print(f"Output: train={len(train)}  val={len(val)}  test={len(test)}")
 
     print("\nLabel map (label_id):  ", LABEL_MAP)
 
-    print("\nFull dataset distribution:")
-    for label, count in df["label"].value_counts().sort_index().items():
-        print(f"  {label:<16} id={LABEL_MAP[label]}  n={count:>4}  ({count/len(df)*100:.1f}%)")
+    print("\nTrain split distribution:")
+    for label, count in train["label"].value_counts().sort_index().items():
+        print(f"  {label:<12} id={LABEL_MAP[label]}  n={count:>6}  ({count/len(train)*100:.1f}%)")
 
     print("\nPer-split distribution:")
     for name, split in [("train", train), ("val", val), ("test", test)]:
         dist = split["label"].value_counts().sort_index()
         print(f"  [{name:5}] " + "  ".join(f"{k}: {v}" for k, v in dist.items()))
 
-    avg_words = df["text"].apply(lambda x: len(x.split())).mean()
-    print(f"\nAvg article length : {avg_words:.0f} words")
-    print("=======================\n")
+    avg_words = train["text"].apply(lambda x: len(x.split())).mean()
+    print(f"\nAvg text length (train) : {avg_words:.0f} words")
+    print("=================================\n")
 
 
 # ──────────────────────────────────────────────
@@ -268,19 +223,20 @@ def print_summary(
 def main():
     base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     raw_dir = os.path.join(base_dir, "data", "raw")
-    processed_dir = os.path.join(base_dir, "data", "processed")
+    processed_dir = os.path.join(base_dir, "data", "processed", "agnews")
 
-    df = load_dataset(raw_dir)
-    print(f"[load] {len(df)} articles, {df['label'].nunique()} categories.")
+    train_raw, test_raw = load_dataset(raw_dir)
+    print(f"[load] train={len(train_raw)}  test={len(test_raw)}  categories={train_raw['label'].nunique()}")
 
-    df = preprocess(df)
-    print(f"[clean] {len(df)} articles after cleaning.")
+    train_clean = preprocess(train_raw)
+    test_clean = preprocess(test_raw)
+    print(f"[clean] train={len(train_clean)}  test={len(test_clean)} after cleaning.")
 
-    train, val, test = split_dataset(df)
+    train, val = split_train_val(train_clean)
     debug = make_debug_subset(train)
 
-    save_splits(train, val, test, debug, processed_dir)
-    print_summary(df, train, val, test)
+    save_splits(train, val, test_clean, debug, processed_dir)
+    print_summary(train_raw, test_raw, train, val, test_clean)
 
 
 if __name__ == "__main__":

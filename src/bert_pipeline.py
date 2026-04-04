@@ -401,10 +401,10 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Fine-tune BERT on the processed BBC News dataset."
     )
-    parser.add_argument("--train-path", default="data/processed/train.csv")
-    parser.add_argument("--val-path", default="data/processed/val.csv")
-    parser.add_argument("--test-path", default="data/processed/test.csv")
-    parser.add_argument("--debug-path", default="data/processed/debug.csv")
+    parser.add_argument("--train-path", default="data/processed/bbc/train.csv")
+    parser.add_argument("--val-path", default="data/processed/bbc/val.csv")
+    parser.add_argument("--test-path", default="data/processed/bbc/test.csv")
+    parser.add_argument("--debug-path", default="data/processed/bbc/debug.csv")
     parser.add_argument("--output-dir", default=DEFAULT_OUTPUT_DIR)
     parser.add_argument("--model-name", default=DEFAULT_MODEL_NAME)
     parser.add_argument("--epochs", type=int, default=3)

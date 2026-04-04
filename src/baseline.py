@@ -35,7 +35,7 @@ from src.data_preprocessing import ID_TO_LABEL, LABEL_MAP
 
 
 def processed_dir(base_dir: str) -> str:
-    return os.path.join(base_dir, "data", "processed")
+    return os.path.join(base_dir, "data", "processed", "bbc")
 
 
 def outputs_dir(base_dir: str) -> str:

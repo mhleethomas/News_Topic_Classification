@@ -1,6 +1,6 @@
 """
 download_data.py
-Download the BBC News dataset for free via Hugging Face datasets library.
+Download the AG News dataset via Hugging Face datasets library.
 
 Usage:
     pip install datasets
@@ -10,12 +10,17 @@ Usage:
 import os
 
 
-def download_bbc_news(raw_dir: str) -> None:
-    os.makedirs(raw_dir, exist_ok=True)
-    out_path = os.path.join(raw_dir, "bbc-text.csv")
+# AG News label mapping (alphabetical order used by HuggingFace ClassLabel)
+AGNEWS_LABEL_NAMES = ["World", "Sports", "Business", "Sci/Tech"]
 
-    if os.path.isfile(out_path):
-        print(f"[download] Already present: '{out_path}'. Skipping.")
+
+def download_ag_news(raw_dir: str) -> None:
+    os.makedirs(raw_dir, exist_ok=True)
+    train_path = os.path.join(raw_dir, "ag_news_train.csv")
+    test_path = os.path.join(raw_dir, "ag_news_test.csv")
+
+    if os.path.isfile(train_path) and os.path.isfile(test_path):
+        print(f"[download] Already present: '{train_path}' and '{test_path}'. Skipping.")
         return
 
     try:
@@ -26,41 +31,29 @@ def download_bbc_news(raw_dir: str) -> None:
             "Then re-run this script."
         )
 
-    print("[download] Fetching BBC News from Hugging Face (SetFit/bbc-news)...")
-    ds = load_dataset("SetFit/bbc-news", split="train")
+    print("[download] Fetching AG News from Hugging Face (fancyzhx/ag_news)...")
+    ds = load_dataset("fancyzhx/ag_news")
 
-    df = ds.to_pandas()
+    for split_name, out_path in [("train", train_path), ("test", test_path)]:
+        split = ds[split_name]
+        df = split.to_pandas()
 
-    # Map integer labels to category names.
-    # SetFit/bbc-news uses ClassLabel with names in alphabetical order:
-    #   0=business, 1=entertainment, 2=politics, 3=sport, 4=tech
-    label_feature = ds.features["label"]
-    if hasattr(label_feature, "names") and not all(
-        n.isdigit() for n in label_feature.names
-    ):
-        # Proper ClassLabel names are available
-        label_names = label_feature.names
+        label_feature = split.features["label"]
+        if hasattr(label_feature, "names"):
+            label_names = label_feature.names
+        else:
+            label_names = AGNEWS_LABEL_NAMES
+
         df["label"] = df["label"].apply(lambda i: label_names[int(i)])
-    else:
-        # Fallback: use the known BBC News alphabetical ordering
-        id_to_label = {
-            0: "business",
-            1: "entertainment",
-            2: "politics",
-            3: "sport",
-            4: "tech",
-        }
-        df["label"] = df["label"].apply(lambda i: id_to_label[int(i)])
+        df = df[["text", "label"]]
 
-    # Keep only the two columns we need
-    df = df[["text", "label"]]
+        df.to_csv(out_path, index=False)
+        print(f"[download] Saved {len(df)} articles → '{out_path}'")
 
-    df.to_csv(out_path, index=False)
-    print(f"[download] Saved {len(df)} articles → '{out_path}'")
-    print(f"[download] Categories: {sorted(df['label'].unique())}")
+    print(f"[download] Categories: {AGNEWS_LABEL_NAMES}")
 
 
 if __name__ == "__main__":
     base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     raw_dir = os.path.join(base_dir, "data", "raw")
-    download_bbc_news(raw_dir)
+    download_ag_news(raw_dir)
