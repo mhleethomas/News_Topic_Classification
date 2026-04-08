@@ -28,3 +28,6 @@ runs/
 
 # Claude Code — personal tool permissions, not shared config
 .claude/settings.local.json
+
+# Office temporary lock files
+~$*
