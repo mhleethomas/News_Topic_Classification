@@ -1,93 +1,84 @@
-# Speaker Notes — Thomas Lee
+# Speaker Notes — Ming-Hsiang Lee (Thomas)
+### Data Pipeline & Dataset Preparation
 
 ---
 
 ## Slide 1 — Title
 
-> "I was responsible for the data side of the project — getting the dataset, cleaning it, and making it usable for everyone else on the team."
+> "Hi, I'm Ming-Hsiang. My part of the project was the data side — getting the datasets, cleaning them, building the preprocessing pipeline, and making everything ready for my teammates to use."
 
 ---
 
-## Slide 2 — My Role
+## Slide 2 — My Responsibilities
 
-> "My work covered two phases. First, I set up the full BBC News pipeline. Then, later in the project, we decided to switch to AG News for a larger and more standardized benchmark, so I migrated everything over while keeping both datasets available."
+> "My work breaks into four things: downloading the data, preprocessing it, migrating from BBC News to AG News, and making sure everyone on the team could get started without any setup headaches."
 
----
-
-## Slide 3 — BBC News Dataset
-
-> "I used the SetFit/bbc-news dataset from HuggingFace — it's free, no API key needed. The dataset has about 1,200 articles across 5 categories. It's relatively small but clean and well-balanced, which made it a good starting point."
-
-> "I wrote `download_data.py` to automate the entire download — one command and you get the raw CSV."
+> "The two core files I own are `download_data.py` and `data_preprocessing.py` in the src folder."
 
 ---
 
-## Slide 4 — Data Preprocessing Pipeline
+## Slide 3 — Datasets
 
-> "The preprocessing script handles everything in sequence: load the raw CSV, clean the text, normalize labels, split into train/val/test, and also generate a tiny debug subset."
+> "We worked with two datasets. Phase 1 was BBC News — around 1,200 articles across 5 categories. I fetched it for free from HuggingFace using the SetFit/bbc-news dataset, no API key needed."
 
-> "Cleaning is intentionally lightweight — I only stripped non-ASCII characters and collapsed whitespace. I deliberately kept original casing, because BERT is case-sensitive and heavy cleaning would hurt it."
+> "Phase 2 was AG News — 127,600 articles, 4 categories. The reason we switched is that BBC was simply too small to meaningfully test BERT. AG News is a standard NLP benchmark, which means our numbers are directly comparable to published results."
 
-> "I fixed `random_state=42` throughout, so every teammate gets identical splits even if they re-run the script."
+> "I kept both datasets in the repo so anyone can switch between them."
+
+---
+
+## Slide 4 — Data Preprocessing
+
+> "The preprocessing script runs through six steps in sequence."
+
+> "Load handles both CSV and folder layouts automatically. Clean strips non-ASCII characters and collapses whitespace — I deliberately kept original casing because BERT is case-sensitive and heavy cleaning would hurt it."
+
+> "Preprocess drops nulls and duplicates, then adds two derived columns: label_id for integer encoding and text_lower for the n-gram baseline."
+
+> "Split is where the strategy differs between the two datasets. For BBC I used a custom 70/15/15 split. For AG News, I kept the official test set untouched and carved validation out of the training data at 85/15."
+
+> "I also built a debug subset — 10 samples per class — so teammates can verify their pipeline works in seconds before running on the full dataset."
+
+> "Everything uses random_state=42, so the splits are identical every time anyone runs it."
 
 ---
 
 ## Slide 5 — Shared Column Schema
 
-> "One design decision I'm proud of is the shared output schema. Every CSV file — train, val, test, and debug — has the exact same four columns."
+> "One design decision I'm particularly happy with is the shared output format. Every CSV — train, val, test, and debug — has exactly the same four columns."
 
-> "The `text` column keeps original casing for Xinyan's BERT model. The `text_lower` column is pre-lowercased for Ruoxuan's n-gram baseline. Both models can load the same file without any conversion."
+> "text keeps original casing for Xinyan's BERT model. text_lower is pre-lowercased for Ruoxuan's TF-IDF baseline. Both models read the same file — no conversion step needed."
 
-> "I also exported `LABEL_MAP` and `ID_TO_LABEL` as module-level constants so anyone can `import` them directly instead of hardcoding label strings."
-
----
-
-## Slide 6 — Migration to AG News
-
-> "About a week into the project, we realized BBC News at 1,200 articles was too small to meaningfully stress-test the BERT model. AG News is a standard benchmark with 127,600 articles, which is much more realistic."
-
-> "I rewrote both the download and preprocessing scripts to handle the new dataset. The key difference is that AG News has an official test split, so I kept that as-is and carved out the validation set from the training data."
+> "I also exported LABEL_MAP and ID_TO_LABEL as module-level constants, so anyone can import them directly instead of hardcoding label strings. That keeps the label definitions in one place across the whole codebase."
 
 ---
 
-## Slide 7 — AG News Split Strategy
+## Slide 6 — AG News Migration
 
-> "AG News doesn't come with a validation set, so I had to create one. I took the official 120k training set and split it 85/15 — giving 102,000 for training and 18,000 for validation."
+> "The migration to AG News required more than just swapping the dataset. The split strategy is fundamentally different."
 
-> "The official 7,600-row test set is kept completely unchanged, which means our test results are directly comparable to published benchmarks."
+> "AG News comes with an official train split of 120,000 and an official test split of 7,600. There's no validation set. So I carved 15% out of the training data to create one — giving 102,000 for training and 18,000 for validation."
 
-> "Every split ended up perfectly balanced at exactly 25% per class — that's a result of AG News itself being balanced, combined with stratified splitting."
+> "Critically, the official test set is kept completely unchanged. That means our test results are directly comparable to published benchmarks for AG News — which is a stronger claim than we could make with a custom split."
 
----
-
-## Slide 8 — AG News Label Map
-
-> "AG News has 4 categories instead of BBC's 5. I updated the `LABEL_MAP` dictionary in the preprocessing module, so all downstream code — baseline, BERT, evaluation — automatically picks up the new labels without any changes."
-
-> "The label IDs are stable integers, so model outputs and evaluation metrics remain consistent."
+> "All four classes end up perfectly balanced at 25% each in every split, because AG News itself is balanced."
 
 ---
 
-## Slide 9 — Folder Structure
+## Slide 7 — Folder Structure & Team Handoff
 
-> "When I added AG News, I didn't want to overwrite the BBC data — other parts of the pipeline still referenced it. So I reorganized processed data into `bbc/` and `agnews/` subfolders."
+> "After the migration I reorganized the data into bbc/ and agnews/ subfolders under processed/. Nothing was deleted — both datasets stay available."
 
-> "I also committed all the data files directly to the repo — 28 MB of raw AG News plus all processed CSVs — so no teammate needs to run a download or preprocessing step to get started."
+> "The most important thing I did for the team was commit all the data files directly to the repository. That means no one needs to run a download script or a preprocessing step. pip install is all it takes to get started."
 
----
-
-## Slide 10 — What This Enabled for the Team
-
-> "The whole point of building a clean pipeline early was to unblock everyone else. Ruoxuan could start on the baseline immediately with `text_lower`. Xinyan could use `text` directly with the BERT tokenizer. Meiling could rely on stable integer `label_id` values for metrics."
-
-> "I also built the debug subset specifically so teammates could test their pipelines in seconds instead of waiting minutes for a full training run."
+> "I also put debug.csv in both dataset folders — 40 rows for AG News, 50 for BBC — so teammates can smoke-test their code without waiting for a full training run."
 
 ---
 
-## Slide 11 — Summary
+## Slide 8 — Thank You
 
-> "To summarize my contributions: I built the data pipeline from scratch, defined the shared schema that all three models use, migrated us from a 1.2k dataset to a 127k one, and kept both datasets in the repo so the team could switch between them easily."
+> "That's my part. The two files to look at are src/download_data.py and src/data_preprocessing.py, and the data is under data/processed/bbc/ and data/processed/agnews/."
 
-> "That's it from me — happy to answer any questions about the preprocessing logic or the split strategy."
+> "Happy to answer any questions."
 
 ---
