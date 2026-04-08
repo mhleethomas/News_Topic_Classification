@@ -9,15 +9,33 @@
 
 ---
 
-## Slide 2 — My Responsibilities
+## Slide 2 — Data Preparation
 
-> "My work breaks into four things: downloading the data, preprocessing it, migrating from BBC News to AG News, and making sure everyone on the team could get started without any setup headaches."
+> "My part of the project was data preparation — getting the datasets, cleaning them, building the preprocessing pipeline, and making everything ready for my teammates to use."
 
-> "The two core files I own are `download_data.py` and `data_preprocessing.py` in the src folder."
+> "This covers four things: downloading the data, preprocessing it, migrating from BBC News to AG News, and making sure everyone could get started without any setup headaches."
+
+> "The two core files are `download_data.py` and `data_preprocessing.py` in the src folder."
 
 ---
 
-## Slide 3 — Datasets
+## Slide 3 — Timeline & Milestones
+
+> "Before I get into the technical details, here's how the project actually developed — and where our plan changed."
+
+> "Week 1 went exactly as proposed. I had the BBC News pipeline done on March 28th — download script, preprocessing, and all the data files committed to the repo."
+
+> "Week 2 was actually ahead of schedule. The proposal had the baseline and BERT pipeline in separate weeks, but Ruoxuan and Xinyan both got their pipelines working by March 30th — the same week."
+
+> "Week 3, Meiling added evaluation and error analysis. At this point BBC was running cleanly — the baseline hit about 97.8% test accuracy."
+
+> "Week 4 is where we diverged from the plan. The BBC results were strong, but 1,194 articles felt like too small a dataset to draw meaningful conclusions about how BERT compares to a classical model. So the team decided to add AG News — 127,600 articles, a proper benchmark."
+
+> "I migrated the pipeline on April 4th. Ruoxuan updated the baseline and Xinyan updated BERT within two days. So the expansion was unplanned, but the whole team executed it quickly."
+
+---
+
+## Slide 4 — Datasets
 
 > "We worked with two datasets. Phase 1 was BBC News — around 1,200 articles across 5 categories. I fetched it for free from HuggingFace using the SetFit/bbc-news dataset, no API key needed."
 
@@ -27,7 +45,7 @@
 
 ---
 
-## Slide 4 — Data Preprocessing
+## Slide 5 — Data Preprocessing
 
 > "The preprocessing script runs through six steps in sequence."
 
@@ -43,7 +61,7 @@
 
 ---
 
-## Slide 5 — Shared Column Schema
+## Slide 6 — Shared Column Schema
 
 > "One design decision I'm particularly happy with is the shared output format. Every CSV — train, val, test, and debug — has exactly the same four columns."
 
@@ -53,7 +71,7 @@
 
 ---
 
-## Slide 6 — AG News Migration
+## Slide 7 — AG News Migration
 
 > "The migration to AG News required more than just swapping the dataset. The split strategy is fundamentally different."
 
@@ -65,7 +83,7 @@
 
 ---
 
-## Slide 7 — Folder Structure & Team Handoff
+## Slide 8 — Folder Structure & Team Handoff
 
 > "After the migration I reorganized the data into bbc/ and agnews/ subfolders under processed/. Nothing was deleted — both datasets stay available."
 
@@ -75,7 +93,7 @@
 
 ---
 
-## Slide 8 — Thank You
+## Slide 9 — Thank You
 
 > "That's my part. The two files to look at are src/download_data.py and src/data_preprocessing.py, and the data is under data/processed/bbc/ and data/processed/agnews/."
 
