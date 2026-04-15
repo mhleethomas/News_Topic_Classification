@@ -4,31 +4,6 @@ Comparing n-gram + Logistic Regression vs. BERT on BBC News and AG News datasets
 
 ---
 
-## ⚠️ Branch `feature/agnews-dataset` — Pending Changes
-
-> **Delete this section after merging to main.**
-
-### What changed
-- Dataset switched from BBC News → **AG News** (127,600 rows, 4 classes)
-- Processed data reorganised: `data/processed/bbc/` and `data/processed/agnews/`
-- `LABEL_MAP` updated to 4 classes (Business / Sci/Tech / Sports / World)
-- `baseline.py` and `bert_pipeline.py` default paths updated to `data/processed/bbc/`
-
-### Action required before merge
-| Who | What |
-|-----|------|
-| Ruoxuan | Update path in `baseline.py` to `data/processed/agnews/`, run and confirm results |
-| Xinyan | Update paths + set `num_labels=4` + use `--max-length 128`, run and confirm |
-| Meiling | No changes needed — verify evaluation runs after others finish |
-| Tzu-Chieh | Confirm outputs look correct, approve PR |
-
-### Merge to main when
-- [ ] Baseline runs on AG News without errors
-- [ ] BERT runs at least 1 epoch without errors
-- [ ] At least one teammate approves the PR on GitHub
-
----
-
 ## Project Structure
 
 ```
@@ -211,10 +186,7 @@ python src/baseline.py --smoke      # train on debug.csv only (quick check)
 
 Outputs: `outputs/baseline_test_predictions.csv`
 
-Default paths point to `data/processed/bbc/`. To run on AG News:
-```bash
-# baseline.py reads from processed_dir — update the path in the script or pass splits manually
-```
+Default paths point to `data/processed/bbc/`. To run on AG News, edit `processed_dir` in `baseline.py` to point to `data/processed/agnews/`.
 
 ---
 
@@ -227,7 +199,14 @@ python src/bert_pipeline.py
 python src/bert_pipeline.py --use-debug --epochs 1 --max-length 128   # smoke test
 ```
 
-**Note for Xinyan:** AG News text is short (~38 words). Recommended `--max-length 128` (vs 256 for BBC). Also update `--train-path`, `--val-path`, `--test-path` to point to `data/processed/agnews/`.
+Default paths point to `data/processed/bbc/` with `--max-length 256`. To run on AG News:
+```bash
+python src/bert_pipeline.py \
+  --train-path data/processed/agnews/train.csv \
+  --val-path   data/processed/agnews/val.csv \
+  --test-path  data/processed/agnews/test.csv \
+  --max-length 128
+```
 
 Outputs: `outputs/bert/test_predictions.csv`, `val_predictions.csv`, `training_history.csv`, `metrics_summary.csv`
 
