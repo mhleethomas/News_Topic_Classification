@@ -28,3 +28,10 @@ runs/
 
 # Claude Code — personal tool permissions, not shared config
 .claude/settings.local.json
+
+# Office temporary lock files
+~$*
+
+# Presentation files (copy-paste into group deck manually)
+*.pptx
+speaker_notes_thomas.md
